@@ -127,7 +127,7 @@ alias hexDump_loop {
         if (%i < $3) {
 
                 ;; this obviously needs to become dynamic at some point
-                var %lineLength 64
+                var %lineLength $iif($4, $4, 16)
 
                 echo -s $getHexLine($1, %i, %lineLength).ascii
                 inc %i %lineLength
