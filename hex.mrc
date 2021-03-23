@@ -5,8 +5,6 @@
 ;;   $3 is optional line length
 alias getHexLine {
 
-        var %ticks $ticks
-
         ;; check if 1st parameter is a &binvar
         if ($bvar($1)) {
 
@@ -15,16 +13,17 @@ alias getHexLine {
                 ;; check if second parameter is present
                 if ($2) {
 
-                        ;; set %byteOffset to the value of the 2nd parameter.
+                        ;; set %byteOffset to the value of the 2nd parameter + 1,
+                        ;; because 0 makes $bvar() return the length of the binvar.
                         ;; if 3rd parameter is present, set %lineLength to it's value,
                         ;; otherwise, use the default (16)
-                        var %byteOffset = $2
+                        var %byteOffset = $calc($2 + 1)
                         var %lineLength = $iif($3, $3, 16)
                 }
                 else {
 
                         ;; set default values for %byteOffset and %lineLength
-                        var %byteOffset = 0
+                        var %byteOffset = 1
                         var %lineLength = 16
                 }
 
@@ -46,20 +45,24 @@ alias getHexLine {
                         inc %i
                 }
 
+                var %prefix $+([,$numPad($base($calc(%byteOffset - 1), 10, 16), 4),])
+
+                ;; I need to come up with a system for having multiple properties.
+                ;; I have ideas but no real solid implementation (yet)
                 if ($prop == hex) {
 
                         ;; if called as $getHexLine().hex, only return the hex line.
-                        return %hexLine
+                        return %prefix %hexLine
                 }
                 elseif ($prop == ascii) {
 
                         ;; if called as $getHexLine().ascii, only return the hex ascii line.
-                        return %ascLine
+                        return %prefix %ascLine
                 }
                 else {
 
                         ;; return both lines combined.
-                        return $+([,$numPad($base(%byteOffset, 10, 16), 4),]) %hexLine %ascLine
+                        return %prefix %hexLine %ascLine
                 }
         }
 
@@ -70,7 +73,6 @@ alias getHexLine {
 }
 
 alias hexDump {
-
 
         ;; check if input exists
         if (($1 != $null) && ($2 != $null) && ($3- != $null)) {
@@ -124,9 +126,12 @@ alias hexDump_loop {
         ;; start looping through all the bytes
         if (%i < $3) {
 
-                echo -s $getHexLine($1, %i, 16).hex
-                inc %i 16
-                .timerhexDump -h 1 5 hexDump_loop &hexDump %i $3 $4-
+                ;; this obviously needs to become dynamic at some point
+                var %lineLength 64
+
+                echo -s $getHexLine($1, %i, %lineLength).ascii
+                inc %i %lineLength
+                .timerhexDump -h 1 0 hexDump_loop &hexDump %i $3 $4-
         }
 }
 
