@@ -45,25 +45,39 @@ alias getHexLine {
                         inc %i
                 }
 
-                var %prefix $+([,$numPad($base($calc(%byteOffset - 1), 10, 16), 4),])
+                ;; msl being "broken" as it is, you can absolutely make an identifier contain
+                ;; periods* and parse them as separate parameters, because that's totally a sane
+                ;; way for me to parse two different sets of parameters.
 
-                ;; I need to come up with a system for having multiple properties.
-                ;; I have ideas but no real solid implementation (yet)
-                if ($prop == hex) {
+                ;; *you can use literally any character except spaces probably, periods just
+                ;; seemed the most sane. I was going to use backslashes first, don't judge me.
 
-                        ;; if called as $getHexLine().hex, only return the hex line.
-                        return %prefix %hexLine
+                if ($findtok($prop, prefix, 46)) {
+
+                        ;; construct the prefix. this is basically just the offset we're printing
+                        ;; from, not the absolute offset value in the file (I think), but maybe
+                        ;; I'll change that at some point.
+                        var %prefix $+([,$numPad($base($calc(%byteOffset - 1), 10, 16), 4),])
+
+                        ;; since this is the first part of the output we're constructing,
+                        ;; we don't really need to add the output to itself (yet)
+                        var %output %prefix
+
                 }
-                elseif ($prop == ascii) {
 
-                        ;; if called as $getHexLine().ascii, only return the hex ascii line.
-                        return %prefix %ascLine
-                }
-                else {
+                if ($findtok($prop, hex, 46)) {
 
-                        ;; return both lines combined.
-                        return %prefix %hexLine %ascLine
+                        ;; if hex property is present, add hex line to the output.
+                        var %output %output %hexLine
                 }
+
+                if ($findtok($prop, ascii, 46)) {
+
+                        ;; if ascii property is present, add the ascii line to the output.
+                        var %ouput %output %ascLine
+                }
+
+                return %ouput
         }
 
         else {
@@ -119,17 +133,26 @@ alias hexDump {
 alias hexDump_loop {
 
         ;; read the input file with specified offset/length
-        bread $qt($4-) $2 $3 $1
+
+        ;; detect if 4th parameter is the line length number.
+        ;; this could probably be cleaner but the vodka inside me does not care
+        if ($4 isnum) {
+
+                var %lineLength $4
+                bread $qt($5-) $2 $3 $1
+        }
+        else {
+
+                var %lineLength 16
+                bread $qt($4-) $2 $3 $1
+        }
 
         var %i = $2
 
         ;; start looping through all the bytes
         if (%i < $3) {
 
-                ;; this obviously needs to become dynamic at some point
-                var %lineLength $iif($4, $4, 16)
-
-                echo -s $getHexLine($1, %i, %lineLength).ascii
+                echo -s $getHexLine($1, %i, %lineLength).prefix.hex.ascii
                 inc %i %lineLength
                 .timerhexDump -h 1 0 hexDump_loop &hexDump %i $3 $4-
         }
