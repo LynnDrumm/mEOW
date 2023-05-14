@@ -1,4 +1,4 @@
-# meow
+# mEOW
 
 This is just a collection of scripts/aliases I wrote for mIRC that I happen to find useful.
 after years of constantly re-writing the same aliases over and over, I decided I needed a solid "library" of sorts.
